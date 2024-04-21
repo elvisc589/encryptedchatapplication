@@ -1,5 +1,5 @@
 const authRoutes = require("./routes/auth.js");
-const dbConnection = require("./db/dbConnection.js");
+const { dbConnection } = require("./db/dbConnection.js");
 const bodyParser = require('body-parser');
 const express = require("express");
 const app = express();
@@ -41,10 +41,8 @@ io.on("connection", (socket) => {
   });
 });
 
-
-
 server.listen(3001, () => {
-  dbConnection.dbConnection();
+  dbConnection();
   console.log("SERVER IS RUNNING");
 });
 
