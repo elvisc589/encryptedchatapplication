@@ -35,6 +35,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("send_message", (data) => {
+    // Emit the message to the sender
+    socket.emit("receive_message", data);
+
+    // Emit the message to all clients in the room except the sender
     socket.to(data.room).emit("receive_message", data);
     
   });
