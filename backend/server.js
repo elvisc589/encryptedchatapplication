@@ -1,51 +1,24 @@
+const { app, server } = require("./socket.js")
+const { dbConnection } =require("./db/dbConnection.js")
+const express = require("express")
+const cors = require("cors");
+const bodyParser = require('body-parser');
 const authRoutes = require("./routes/auth.js");
 const messageRoutes = require("./routes/message.js");
-const { dbConnection } = require("./db/dbConnection.js");
-const bodyParser = require('body-parser');
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
-const CryptoJS = require("crypto-js")
-const cookieParser  = require("cookie-parser")
+const cookieParser = require("cookie-parser");
 
-require('dotenv').config();
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-  },
-});
+require("dotenv").config();
 
-app.use(cors());
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(cookieParser())
-app.use(bodyParser.json()); // to parse the incoming request with JSON payloads
+app.use(bodyParser.json());
 
-app.use("/api/auth", authRoutes)
-app.use("/api/messages", messageRoutes)
 
-io.on("connection", (socket) => {
-  console.log(`User Connected: ${socket.id}`);
-
-  socket.on("join_room", (data) => {
-    socket.join(data);
-  });
-
-  socket.on("send_message", (data) => {
-    // Emit the message to the sender
-    socket.emit("receive_message", data);
-
-    // Emit the message to all clients in the room except the sender
-    socket.to(data.room).emit("receive_message", data);
-    
-  });
-});
+app.use("/api/auth", authRoutes);
+app.use("/api/messages", messageRoutes);
 
 server.listen(3001, () => {
   dbConnection();
   console.log("SERVER IS RUNNING");
 });
-
