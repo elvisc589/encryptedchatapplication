@@ -8,14 +8,14 @@ import Contacts from "./components/Contacts";
 function App() {
   
   return (
-    <SocketProvider>
+
         <Routes>
           <Route path='/login' element={<Login />} />
           <Route path='/signup' element={<Signup />} />
           <Route path='/contacts' element={<Contacts />} />
           <Route path='/chat/:username' element={<Chat />} />
         </Routes>
-    </SocketProvider>
+   
   );
 }
 

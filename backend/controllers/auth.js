@@ -9,6 +9,7 @@ const signup = async (req, res) => {
         const username = req.body.username;
         const password = req.body.password;
         const confirmPassword = req.body.confirmPassword;
+        const publicKeyJwk = req.body.publicKeyJwk
 
         if (password != confirmPassword){
             return res.status(400).json({error: "Passwords do not match"})
@@ -27,6 +28,7 @@ const signup = async (req, res) => {
             fullName,
             username,
             password: hashedPassword,
+            publicKeyJwk
         })
 
         if (newUser){
@@ -63,7 +65,7 @@ const login = async (req, res) => {
         if(!user || !isPasswordCorrect){
             return res.status(400).json({error: "Invalid username or password"});
         }
-
+        
         generateTokenAndSetCookie(user._id, res)
         res.status(200).json({
             _id: user._id,
