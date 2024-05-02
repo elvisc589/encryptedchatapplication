@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import {keyGen} from '../utilities/keyGen.jsx';
 
 const Signup = () => {
     const [fullName, setFullName] = useState('');
@@ -19,14 +20,26 @@ const Signup = () => {
                 console.log("Password must be at least 6 character long")
                 return;
             }
+
+            const keyPair = await keyGen()
+            const publicKeyJwk = keyPair.publicKeyJwk
+            const privateKeyJwk = keyPair.privateKeyJwk
+
+            
             const res = await axios.post('http://localhost:3001/api/auth/signup', {
                 fullName,
                 username,
                 password,
-                confirmPassword
+                confirmPassword,
+                publicKeyJwk
+               
             });
 
             const user = res.data;
+            
+            
+            sessionStorage.setItem('privateKey', JSON.stringify(privateKeyJwk));
+
             console.log('Registered user:', user);
           
         } catch (error) {
