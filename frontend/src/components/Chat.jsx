@@ -1,50 +1,72 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import { useSocket } from '../context/SocketContext';
+import { encryptMessage, decryptMessage } from '../utilities/crypto';
+import { deriveKey } from '../utilities/deriveKey';
 
 const Chat = () => {
     const { username } = useParams();
-    const socket = useSocket();
     const [messages, setMessages] = useState([]);
     const [message, setMessage] = useState("");
+    const [derivedKey, setDerivedKey] = useState(null); // State for imported contact key
 
-    // Listen for new messages from the server
+
     useEffect(() => {
-        if (socket) {
-            socket.on('newMessage', (newMessage) => {
-                setMessages((prevMessages) => [...prevMessages, newMessage]);
-            });
-        }
-        return () => {
-            if (socket) {
-                socket.off('newMessage');
+        const fetchData = async () => {
+            try {
+                setDerivedKey(await deriveKey(username)); // Wait for deriveKey to complete
+            } catch (error) {
+                console.error('Error:', error.message);
             }
         };
-    }, [socket]);
+        fetchData();
+        return () => {
+        
+        };
+    }, [username]);
 
     useEffect(() => {
-        const fetchChatMessages = async () => {
+        const fetchMessages = async () => {
             try {
-                const res = await axios.get(`http://localhost:3001/api/messages/${username}`, 
-                    { withCredentials: true });
-                setMessages(res.data);
+                if (derivedKey) {
+                    const res = await axios.get(`http://localhost:3001/api/messages/${username}`, { withCredentials: true });
+                    const encryptedMessages = res.data;
+
+                    console.log("Encrypted messages", encryptedMessages);
+                    console.log("Derived key inside fetch", derivedKey);
+
+                    const decryptedMessages = await Promise.all(encryptedMessages.map(async (encryptedMessage) => {
+                        try {       
+                            if (encryptedMessage.message.startsWith("ENCRYPTED:")) {
+                                const encryptedData = encryptedMessage.message.substring("ENCRYPTED:".length);
+                                const decryptedMessage = await decryptMessage(encryptedData, derivedKey);
+                                return decryptedMessage;}
+                                else return
+                           
+                        } catch (error) {
+                            console.error('Error decrypting message:', error);
+                        }
+                    }));
+
+                    console.log(decryptedMessages)
+                    setMessages(decryptedMessages);
+                }
             } catch (error) {
                 console.error('Error fetching chat messages:', error.message);
             }
         };
 
-        fetchChatMessages();
-
-        return () => {
-            
-        };
-    }, [username]); 
+        fetchMessages();
+    }, [derivedKey, username]);
 
     const sendMessage = async () => {
         try {
+            
+            console.log("Key inside send message", derivedKey)
+            const encryptedMessage = await encryptMessage(message, derivedKey);
+            console.log(encryptedMessage)
             const res = await axios.post(`http://localhost:3001/api/messages/send/${username}`, {
-                message: message
+                message: `ENCRYPTED:${encryptedMessage}`
             }, { withCredentials: true });
           
             setMessage('');
@@ -54,24 +76,16 @@ const Chat = () => {
         }
     }
 
-    // Render chat messages with different background colors based on sender
-    const renderChatMessages = (messages) => {
-        return messages.map((message, index) => (
-            <div
-                key={index}
-                className={`message p-2 rounded-md ${message[1] === 'logged' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-black'}`}
-            >
-                {message[0].message}
-            </div>
-        ));
-    };
-
     return (
         <div className="h-screen flex justify-center items-center flex-col bg-[var(--uncblue)]">
             <div className="max-w-md w-full p-8 bg-gray-200 rounded-t-2xl shadow-md">
                 <h2 className="mb-4">Chatting with {username}</h2>
                 <div className="chat-container">
-                    {renderChatMessages(messages)} 
+                {messages.map((message, index) => (
+        <div key={index} className="message">
+          <p>{message}</p>
+        </div>
+      ))}
                 </div>
             </div>
             <div className="max-w-md w-full p-8 bg-gray-200 rounded-b-2xl shadow-md">

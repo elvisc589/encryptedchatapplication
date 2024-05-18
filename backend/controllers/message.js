@@ -2,6 +2,7 @@ const { Conversation } = require("../models/conversation")
 const { User } = require("../models/user")
 const { Message } = require("../models/message")
 const { getReceiverSocketId, io } = require("../socket.js")
+
 const sendMessage = async (req, res) => {
     try{
         const message = req.body.message
@@ -18,6 +19,7 @@ const sendMessage = async (req, res) => {
         }
 
         const receiverId = receiver._id
+
 
         let conversation = await Conversation.findOne({ 
             users: { $all: [senderId, receiverId]}
@@ -76,21 +78,16 @@ const getMessages = async (req, res) => {
             users: { $all: [loggedInUserId, contact._id] },
         }).populate("messages");
 
-        // Initialize arrays to hold categorized messages
-        let messages = [];
+       
+        let Messages = [];
 
-        // Loop through messages and categorize them
         for (let i = 0; i < conversation.messages.length; i++) {
             const message = conversation.messages[i];
-            if (message.senderId.equals(loggedInUserId)) {
-                messages.push([message, "logged"]);
-            } else {
-                messages.push([message, "contact"]);
-            }
-        }
+            Messages.push(message)
 
+        }
         // Send categorized messages in the response
-        res.status(200).json(messages);
+        res.status(200).json(Messages);
     } catch(error) {
         // Handle errors
         console.log("Error in getMessages controller", error.message);
@@ -102,11 +99,14 @@ const getMessages = async (req, res) => {
 const getContacts = async (req, res) => {
     try {
         const userId = req.user._id;
-        const loggedUsername = req.user.username;
 
-        const conversations = await Conversation.find({ users: { $in: [userId] } }).populate('users', 'username');
+        const loggedUser = await User.findOne({ _id: userId });
+        const loggedUsername = loggedUser.username
 
-        let contacts = [];
+        const conversations = await Conversation.find({ users: { $in: [userId] } }).populate('users', 'username')
+
+        let contacts = []
+
         for (let i = 0; i < conversations.length; i++) {
             const conversation = conversations[i];
             for (let j = 0; j < conversation.users.length; j++) {
@@ -120,13 +120,36 @@ const getContacts = async (req, res) => {
         res.status(200).json(contacts);
 
     } catch (error) {
-        console.log("Error in getConversations controller", error.message);
+        console.log("Error in getContacts controller", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 };
 
+const getMessageKey = async (req, res) => {
+    try{
+        const contactUsername = req.params.username;
+   
+        const contact = await User.findOne({ username: contactUsername });
+        
+      
+        if (!contact) {
+            return res.status(404).json({ error: "Receiver not found" });
+        }
+
+        const contactKey = contact.publicKeyJwk
+
+        res.status(200).json(contactKey)
+
+
+    } catch(error) {
+        console.log("Error in getMessageKey controller", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+}
+
 module.exports = {
     sendMessage,
     getMessages,
-    getContacts
+    getContacts,
+    getMessageKey
 }

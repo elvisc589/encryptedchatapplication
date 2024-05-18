@@ -15,6 +15,9 @@ const userSchema = new mongoose.Schema({
         required:true,
         minLength:6
     },
+    publicKeyJwk: {
+        type: Object,
+    }
 })
 
 const User = mongoose.model("User", userSchema)

@@ -13,6 +13,7 @@ const Contacts = () => {
             try {
                 const res = await axios.get('http://localhost:3001/api/messages', 
                 { withCredentials: true });
+                console.log(res.data)
                 setContacts(res.data);
             } catch (error) {
                 console.error('Error fetching contacts: ', error.message);
