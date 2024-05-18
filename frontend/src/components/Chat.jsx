@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import { encryptMessage, decryptMessage } from '../utilities/encryption';
+import { encryptMessage, decryptMessage } from '../utilities/crypto';
+import { deriveKey } from '../utilities/deriveKey';
 
 const Chat = () => {
     const { username } = useParams();
@@ -10,65 +11,16 @@ const Chat = () => {
     const [derivedKey, setDerivedKey] = useState(null); // State for imported contact key
 
 
+
     useEffect(() => {
-        const deriveKey = async () => {
-            try {
-                const res = await axios.get(`http://localhost:3001/api/messages/key/${username}`, 
-                    { withCredentials: true });
-                
-                const contactKey = res.data; 
-                console.log('Retrieved contact key:', contactKey);
-
-                const importedContactKey = await window.crypto.subtle.importKey(
-                    "jwk",
-                    contactKey,
-                    {
-                        name: "ECDH",
-                        namedCurve: "P-256"
-                    },
-                    true,
-                    []
-                );
-
-                const privateKeyJwk = JSON.parse(sessionStorage.getItem('privateKey'));
-
-                const privateKey = await window.crypto.subtle.importKey(
-                    "jwk",
-                    privateKeyJwk,
-                    {
-                        name: "ECDH",
-                        namedCurve: "P-256",
-                    },
-                    true,
-                    ["deriveKey", "deriveBits"]
-                );
-
-                const symmetricKey = await window.crypto.subtle.deriveKey(
-                    { name: "ECDH", public: importedContactKey },
-                    privateKey,
-                    { name: "AES-GCM", length: 256 },
-                    true,
-                    ["encrypt", "decrypt"]
-                );
-
-                setDerivedKey(symmetricKey);
-                console.log("Derived key:", derivedKey);
-
-            } catch (error) {
-                console.error('Error fetching contact key:', error.message);
-            }
-        };
-
         const fetchData = async () => {
             try {
-                await deriveKey(); // Wait for deriveKey to complete
+                setDerivedKey(await deriveKey(username)); // Wait for deriveKey to complete
             } catch (error) {
                 console.error('Error:', error.message);
             }
         };
-       
         fetchData();
-
         return () => {
         
         };
@@ -100,11 +52,9 @@ const Chat = () => {
                     console.log(decryptedMessages)
                     setMessages(decryptedMessages);
                 }
-            } catch (error) {
-                console.error('Error fetching chat messages:', error.message);
-            }
         };
 
+    
         fetchMessages();
     }, [derivedKey, username]);
 
