@@ -32,32 +32,35 @@ const Chat = () => {
                 if (derivedKey) {
                     const res = await axios.get(`http://localhost:3001/api/messages/${username}`, { withCredentials: true });
                     const encryptedMessages = res.data;
-
+    
                     console.log("Encrypted messages", encryptedMessages);
                     console.log("Derived key inside fetch", derivedKey);
-
+    
                     const decryptedMessages = await Promise.all(encryptedMessages.map(async (encryptedMessage) => {
-                        try {       
+                        try {
                             if (encryptedMessage.message.startsWith("ENCRYPTED:")) {
                                 const encryptedData = encryptedMessage.message.substring("ENCRYPTED:".length);
                                 const decryptedMessage = await decryptMessage(encryptedData, derivedKey);
-                                return decryptedMessage;}
-                                else return
-                           
+                                return decryptedMessage;
+                            } else {
+                                return encryptedMessage.message;  
+                            }
                         } catch (error) {
                             console.error('Error decrypting message:', error);
                         }
                     }));
-
-                    console.log(decryptedMessages)
+    
+                    console.log(decryptedMessages);
                     setMessages(decryptedMessages);
                 }
+            } catch (error) {
+                console.error(error);
+            }
         };
-
     
         fetchMessages();
     }, [derivedKey, username]);
-
+    
     const sendMessage = async () => {
         try {
             
