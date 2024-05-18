@@ -11,6 +11,7 @@ const Chat = () => {
     const [derivedKey, setDerivedKey] = useState(null); // State for imported contact key
 
 
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -51,11 +52,9 @@ const Chat = () => {
                     console.log(decryptedMessages)
                     setMessages(decryptedMessages);
                 }
-            } catch (error) {
-                console.error('Error fetching chat messages:', error.message);
-            }
         };
 
+    
         fetchMessages();
     }, [derivedKey, username]);
 
